@@ -3,5 +3,9 @@
 version = 4
 
 [[package]]
-name = "crafting-interpreters"
+name = "rulox"
+version = "0.1.0"
+
+[[package]]
+name = "unrulox"
 version = "0.1.0"
