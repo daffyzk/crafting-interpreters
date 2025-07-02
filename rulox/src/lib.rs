@@ -33,11 +33,12 @@ impl Lox {
     }
     
     pub fn main(&self, args: Vec<String>) {
-        if args.len() > 1usize {
+        println!("args len: {}", args.len());
+        if args.len() > 2usize {
             println!("Usage: jlox [script]");
             process::exit(64); 
-        } else if args.len() == 1usize {
-            let file_path = args.get(0).expect("MAIN: Invalid arg provided");
+        } else if args.len() == 2usize {
+            let file_path = args.get(1).expect("MAIN: Invalid arg provided");
             self.run_file(file_path.as_str());
         } else {
             self.run_prompt();
