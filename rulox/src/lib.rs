@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::collections::HashMap;
 use std::io;
 use std::path::Path;
@@ -26,12 +25,18 @@ impl Clone for Lox {
 
 
 impl Lox {
+
+    pub fn new() -> Self {
+        Self {
+            had_error: AtomicBool::new(false)
+        }
+    }
     
-    fn main(&self, args: Vec<String>) {
-        if args.len() > 1 {
+    pub fn main(&self, args: Vec<String>) {
+        if args.len() > 1usize {
             println!("Usage: jlox [script]");
             process::exit(64); 
-        } else if args.len() == 1 {
+        } else if args.len() == 1usize {
             let file_path = args.get(0).expect("MAIN: Invalid arg provided");
             self.run_file(file_path.as_str());
         } else {
