@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 use std::process;
 use std::fs;
@@ -33,12 +33,11 @@ impl Lox {
     }
     
     pub fn main(&self, args: Vec<String>) {
-        println!("args len: {}", args.len());
         if args.len() > 2usize {
             println!("Usage: jlox [script]");
             process::exit(64); 
         } else if args.len() == 2usize {
-            let file_path = args.get(1).expect("MAIN: Invalid arg provided");
+            let file_path = args.get(1).expect("Main: Invalid arg provided");
             self.run_file(file_path.as_str());
         } else {
             self.run_prompt();
@@ -47,7 +46,7 @@ impl Lox {
     
     fn run_file(&self, path: &str) {
         let file = Path::new(&path);
-        let contents = fs::read_to_string(file).expect("RUN_FILE: Could not read file");
+        let contents = fs::read_to_string(file).expect("Run.File: Could not read file");
         self.run(&contents);
 
         if self.had_error.load(Ordering::SeqCst) {
@@ -58,8 +57,9 @@ impl Lox {
     fn run_prompt(&self) {
         let mut line: String = String::new();
         loop {
-            println!("> ");
-            io::stdin().read_line(&mut line).expect("RUN_PROMPT: could not read line");
+            print!("> ");
+            io::stdout().flush().unwrap();
+            io::stdin().read_line(&mut line).expect("Run.Prompt: could not read line");
             if line.trim().is_empty() {break};
             self.run(&line);
             line.clear();
