@@ -56,6 +56,7 @@ impl Lox {
 
     fn run_prompt(&self) {
         let mut line: String = String::new();
+        println!("DEBUG, line: {}", line);
         loop {
             print!("> ");
             io::stdout().flush().unwrap();
@@ -136,7 +137,7 @@ impl Scanner {
             let c = self.current.clone().load(Ordering::Relaxed);
             self.start.clone().store(c, Ordering::Relaxed);
             self.scan_token();
-            if !self.is_at_end() {break}
+            if self.is_at_end() {break}
         }
         let line = self.line.clone().load(Ordering::Relaxed);
         self.tokens.clone().lock().unwrap().push(
@@ -198,7 +199,7 @@ impl Scanner {
                             self.add_token(TokenType::Slash, None); 
                         }
                     },
-                    ' '  => {},
+                    ' '  => {}, 
                     '\r' => {},
                     '\t' => {},
                     '\n' => { 
@@ -283,7 +284,7 @@ impl Scanner {
             if self.peek() == Ok('"') || self.is_at_end() {break}
             if self.peek() == Ok('\n') {
                let new_line = self.line.clone().load(Ordering::Relaxed);
-               self.line.clone().store(new_line, Ordering::Relaxed);
+               self.line.clone().store(new_line + 1, Ordering::Relaxed);
                break;
             }
             Self::handle_advance(self.advance(), "String");
@@ -295,7 +296,9 @@ impl Scanner {
 
         Self::handle_advance(self.advance(), "String.After");
 
-        let value: String = self.source_substring();
+        let current: usize = self.current.clone().load(Ordering::Relaxed) - 1usize;
+        let start:   usize = self.start.clone().load(Ordering::Relaxed) + 1usize;
+        let value: String = self.source[start..current].to_string();
 
         self.add_token(TokenType::String, Some(Value::String(value)));
     }
@@ -409,7 +412,7 @@ impl Token {
     }
 
     pub fn to_string(&self) -> String {
-        format!("{:?} {} {:?}", self.type_of, self.lexeme, self.literal)
+        format!("{:?} {:?} {:?}", self.type_of, self.lexeme, self.literal)
     }
 
 }
