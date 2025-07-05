@@ -1,0 +1,4 @@
+var egg = 150;
+var isEgg = egg == 150;
+var message = "this is a very long message";
+print(isEgg);

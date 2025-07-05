@@ -56,7 +56,6 @@ impl Lox {
 
     fn run_prompt(&self) {
         let mut line: String = String::new();
-        println!("DEBUG, line: {}", line);
         loop {
             print!("> ");
             io::stdout().flush().unwrap();
@@ -230,25 +229,28 @@ impl Scanner {
 
     /// finds the next char and increments current
     fn advance(&self) -> Result<char, &str> {
-        let c: usize = self.current.clone().load(Ordering::Relaxed) + 1usize;
-        self.current.clone().store(c, Ordering::Relaxed);
+        let c: usize = self.current.clone().load(Ordering::Relaxed);
 
-        match self.source.chars().nth(c) {
+        let res = match self.source.chars().nth(c) {
             Some(char) => {Ok(char)},
             None       => {Err("Could not advance from current character.")},
-        }
+        };
+        
+        self.current.clone().store(c + 1usize, Ordering::Relaxed);
+        res
     } 
 
     /// finds the next char, if it matches expected, increments current and returns true
     fn match_next(&self, expected: char) -> bool {
-        if self.is_at_end() {false} else {
-            let c: usize = self.current.clone().load(Ordering::Relaxed) + 1usize;
-            let char: char = self.source.chars().nth(c).unwrap();
-            if char == expected {
-                self.current.clone().store(c, Ordering::Relaxed);
-                true
-            } else {false}
-        }  
+        if self.is_at_end() {return false}
+
+        let c: usize = self.current.clone().load(Ordering::Relaxed);
+        let char: char = self.source.chars().nth(c).unwrap();
+
+        if char != expected {return false}
+
+        self.current.clone().store(c + 1usize, Ordering::Relaxed);
+        true 
     }
     
     /// take a lil peek
@@ -310,12 +312,14 @@ impl Scanner {
 
     /// tokenizing for number values
     fn number(&self) {
+        let mut is_double = false;
         loop {
             if !self.is_digit(self.peek().unwrap()) {break}
             Self::handle_advance(self.advance(), "Number");
 
             if self.peek().unwrap() == '.' &&
                 self.is_digit(self.peek_next().unwrap()) {
+                is_double = true;
                 loop {
                     if !self.is_digit(self.peek().unwrap()) {break}
                     Self::handle_advance(self.advance(), "Number.Decimal");
@@ -323,10 +327,15 @@ impl Scanner {
             }
            
         }
-        let lit:    String = self.source_substring();
-        let double:    f64 = lit.parse::<f64>().unwrap();
-    
-        self.add_token(TokenType::Number, Some(Value::Float(double)));
+        let lit: String = self.source_substring();
+
+        if is_double {
+            let double: f64 = lit.parse::<f64>().unwrap();
+            self.add_token(TokenType::Number, Some(Value::Float(double)));
+        } else {
+            let integer: u32 = lit.parse::<u32>().unwrap(); 
+            self.add_token(TokenType::Number, Some(Value::Integer(integer)));
+        }
     }
 
     /// what if peek but twice
@@ -421,6 +430,7 @@ impl Token {
 enum Value {
     String(String),
     Float(f64),
+    Integer(u32),
 }
 
 // use std::env;
