@@ -1,3 +1,6 @@
+pub mod ast;
+pub mod pp;
+
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::Path;
@@ -9,6 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
+
+use ast::Value;
 
 pub struct Lox {
     had_error: AtomicBool,
@@ -230,14 +235,12 @@ impl Scanner {
     /// finds the next char and increments current
     fn advance(&self) -> Result<char, &str> {
         let c: usize = self.current.clone().load(Ordering::Relaxed);
+        self.current.clone().store(c + 1usize, Ordering::Relaxed);
 
-        let res = match self.source.chars().nth(c) {
+        match self.source.chars().nth(c) {
             Some(char) => {Ok(char)},
             None       => {Err("Could not advance from current character.")},
-        };
-        
-        self.current.clone().store(c + 1usize, Ordering::Relaxed);
-        res
+        }
     } 
 
     /// finds the next char, if it matches expected, increments current and returns true
@@ -388,7 +391,7 @@ impl Scanner {
 }
 
 #[derive(Debug, Clone)]
-enum TokenType {
+pub enum TokenType {
 
 LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
 
@@ -411,7 +414,7 @@ pub struct Token {
 
 impl Token {
 
-    fn new(type_of: TokenType, lexeme: &str, literal: Value, line: u32) -> Token {
+    pub fn new(type_of: TokenType, lexeme: &str, literal: Value, line: u32) -> Token {
         Token {
             type_of,
             lexeme: lexeme.to_string(),
@@ -426,15 +429,3 @@ impl Token {
 
 }
 
-#[derive(Debug, Clone)]
-enum Value {
-    String(String),
-    Float(f64),
-    Integer(u32),
-}
-
-// use std::env;
-// const args: Vec<String> = env::args().collect();
-// let lox: Lox = Lox{};
-//
-// lox::main(lox, args);
