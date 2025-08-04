@@ -1,10 +1,12 @@
-use crate::Token;
+use crate::lox::Token;
 
 #[derive(Debug, Clone)]
 pub enum Value {
     String(String),
     Float(f64),
     Integer(u32),
+    Boolean(bool),
+    Null,
 }
 
 impl ToString for Value {
@@ -13,6 +15,8 @@ impl ToString for Value {
             Value::String(s) => s.clone(),
             Value::Float(f) => f.to_string(),
             Value::Integer(i) => i.to_string(),
+            Value::Boolean(b) => b.to_string(),
+            Value::Null => "null".to_string(),
         }
     }
 }
@@ -90,27 +94,3 @@ impl Unary {
     }
 }
 
-// this sucks
-struct Parser {
-    pub tokens: Vec<Token>,
-    pub current: u32,
-}
-
-impl Parser {
-
-    pub fn new(tokens: Vec<Token>) -> Self {
-        Parser {
-            tokens,
-            current: 0
-        } 
-    }
-}
-
-
-// Grouping
-
-// use std::env;
-// const args: Vec<String> = env::args().collect();
-// let lox: Lox = Lox{};
-//
-// lox::main(lox, args);

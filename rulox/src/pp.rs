@@ -1,7 +1,29 @@
 use crate::ast::{Binary, Expr, Grouping, Literal, Unary, Visitor};
 
-
 pub struct PrettyPrinter;
+
+impl PrettyPrinter {
+
+    pub fn new() -> Self {
+        PrettyPrinter{}
+    }
+
+    pub fn print(&self, expr: Expr) -> String {
+        expr.accept(self)
+    }
+
+    fn parenthesize(&self, name: &str, exprs: &[Expr]) -> String {
+        let mut builder = String::new();
+        builder.push('(');
+        builder.push_str(name);
+        for expr in exprs {
+            builder.push(' ');
+            builder.push_str(&expr.accept(self));
+        }
+        builder.push(')');
+        builder
+    }
+}
 
 impl Visitor<String> for PrettyPrinter {
     fn visit_binary(&self, binary: &Binary) -> String {
@@ -29,28 +51,4 @@ impl Visitor<String> for PrettyPrinter {
         )
     }
 }
-
-impl PrettyPrinter {
-
-    pub fn new() -> Self {
-        PrettyPrinter{}
-    }
-
-    pub fn print(&self, expr: Expr) -> String {
-        expr.accept(self)
-    }
-
-    fn parenthesize(&self, name: &str, exprs: &[Expr]) -> String {
-        let mut builder = String::new();
-        builder.push('(');
-        builder.push_str(name);
-        for expr in exprs {
-            builder.push(' ');
-            builder.push_str(&expr.accept(self));
-        }
-        builder.push(')');
-        builder
-    }
-}
-
 
