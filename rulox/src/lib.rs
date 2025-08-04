@@ -1,3 +1,6 @@
+pub mod ast;
+pub mod pp;
+
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::Path;
@@ -9,6 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
+
+use ast::Value;
 
 pub struct Lox {
     had_error: AtomicBool,
@@ -386,7 +391,7 @@ impl Scanner {
 }
 
 #[derive(Debug, Clone)]
-enum TokenType {
+pub enum TokenType {
 
 LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
 
@@ -409,7 +414,7 @@ pub struct Token {
 
 impl Token {
 
-    fn new(type_of: TokenType, lexeme: &str, literal: Value, line: u32) -> Token {
+    pub fn new(type_of: TokenType, lexeme: &str, literal: Value, line: u32) -> Token {
         Token {
             type_of,
             lexeme: lexeme.to_string(),
@@ -424,136 +429,3 @@ impl Token {
 
 }
 
-#[derive(Debug, Clone)]
-enum Value {
-    String(String),
-    Float(f64),
-    Integer(u32),
-}
-
-trait Visitor<T> {
-    fn visit_binary(&self, binary: &Binary) -> T;
-    fn visit_grouping(&self, grouping: &Grouping) -> T;
-    fn visit_literal(&self, literal: &Literal) -> T;
-    fn visit_unary(&self, unary: &Unary) -> T;
-}
-
-enum Expr {
-    Binary(Binary),
-    Grouping(Grouping),
-    Literal(Literal),
-    Unary(Unary),
-}
-
-impl Expr {
-    fn accept<T>(&self, visitor: &dyn Visitor<T>) -> T {
-        match self {
-            Expr::Binary(binary) => visitor.visit_binary(binary),
-            Expr::Grouping(grouping) => visitor.visit_grouping(grouping),
-            Expr::Literal(literal) => visitor.visit_literal(literal),
-            Expr::Unary(unary) => visitor.visit_unary(unary),
-        }
-    }
-}
-
-struct Binary {
-    left: Box<Expr>,
-    operator: Token,
-    right: Box<Expr>,
-}
-
-impl Binary {
-    fn new(left: Box<Expr>, operator: Token, right: Box<Expr>) -> Expr {
-        Expr::Binary(Binary { left, operator, right })
-    }
-}
-
-struct Grouping {
-    expression: Box<Expr>,
-}
-
-impl Grouping {
-    fn new(expression: Box<Expr>) -> Expr {
-        Expr::Grouping(Grouping { expression })
-    }
-}
-
-struct Literal {
-    value: Value,
-}
-
-impl Literal {
-    fn new(value: Value) -> Expr {
-        Expr::Literal(Literal { value })
-    }
-}
-
-struct Unary {
-    operator: Token,
-    right: Box<Expr>,
-}
-
-impl Unary {
-    fn new(operator: Token, right: Box<Expr>) -> Expr {
-        Expr::Unary(Unary { operator, right })
-    }
-}
-
-struct PrettyPrinter;
-
-impl Visitor<String> for PrettyPrinter {
-    fn visit_binary(&self, binary: &Binary) -> String {
-        format!(
-            "({} {} {})",
-            binary.left.accept(self),
-            binary.operator.to_string(),
-            binary.right.accept(self)
-        )
-    }
-
-    fn visit_grouping(&self, grouping: &Grouping) -> String {
-        format!(
-            "({})",
-            grouping.expression.accept(self)
-        )
-    }
-
-    fn visit_literal(&self, literal: &Literal) -> String {
-        format!(
-            "({:?})",
-            literal.value.clone()
-        )
-    }
-
-    fn visit_unary(&self, unary: &Unary) -> String {
-        format!(
-            "({} {})",
-            unary.operator.to_string(),
-            unary.right.accept(self)
-        )
-    }
-}
-
-
-// this sucks
-struct Parser {
-    tokens: Vec<Token>,
-    current: u32,
-}
-impl Parser {
-
-    fn new(tokens: Vec<Token>) -> Self {
-        Parser {
-            tokens
-        } 
-    }
-}
-
-
-// Grouping
-
-// use std::env;
-// const args: Vec<String> = env::args().collect();
-// let lox: Lox = Lox{};
-//
-// lox::main(lox, args);
