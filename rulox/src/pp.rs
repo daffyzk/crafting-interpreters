@@ -6,7 +6,7 @@ pub struct PrettyPrinter;
 impl Visitor<String> for PrettyPrinter {
     fn visit_binary(&self, binary: &Binary) -> String {
         self.parenthesize(
-            &binary.operator.to_string(),
+            &binary.operator.lexeme.to_string(),
             &[*binary.left.clone(), *binary.right.clone()]
         )
     }
@@ -24,13 +24,22 @@ impl Visitor<String> for PrettyPrinter {
 
     fn visit_unary(&self, unary: &Unary) -> String { 
         self.parenthesize(
-            &unary.operator.to_string(),
+            &unary.operator.lexeme.to_string(),
             &[*unary.right.clone()]
         )
     }
 }
 
 impl PrettyPrinter {
+
+    pub fn new() -> Self {
+        PrettyPrinter{}
+    }
+
+    pub fn print(&self, expr: Expr) -> String {
+        expr.accept(self)
+    }
+
     fn parenthesize(&self, name: &str, exprs: &[Expr]) -> String {
         let mut builder = String::new();
         builder.push('(');

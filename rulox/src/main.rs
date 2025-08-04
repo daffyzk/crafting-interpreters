@@ -1,6 +1,6 @@
 use std::env;
 
-use rulox::{ast::{Binary, Expr, Grouping, Literal, Unary, Value}, Lox, Token, TokenType };
+use rulox::{ast::{Binary, Expr, Grouping, Literal, Unary, Value}, pp::PrettyPrinter, Lox, Token, TokenType };
 
 fn main() {
     
@@ -17,7 +17,9 @@ fn main() {
         ),
     );
 
-    println!("expression: {:?}", expr);
+    let pp = PrettyPrinter::new();
+    println!("expression: {:?}", pp.print(expr));
+
     
     // TODO: uncomment this later
     // let args: Vec<String> = env::args().collect();
