@@ -3,16 +3,18 @@ use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex};
 use crate::{ast::{Binary, Expr, Grouping, Literal, Unary, Value}, lox::{Lox, Token, TokenType}};
 
 pub struct Parser {
-    lox:         Arc<Mutex<Lox>>,
+    // lox:         Arc<Mutex<Lox>>,
     pub tokens:  Vec<Token>,
     pub current: Arc<AtomicUsize>,
 }
 
 impl Parser {
 
-    pub fn new(lox: Arc<Mutex<Lox>>, tokens: Vec<Token>) -> Self {
+    pub fn new(
+        // lox: Arc<Mutex<Lox>>, 
+        tokens: Vec<Token>) -> Self {
         Parser {
-            lox,
+            // lox,
             tokens,
             current: Arc::new(AtomicUsize::new(0usize))
         } 
@@ -162,7 +164,7 @@ impl Parser {
                 Err(e) => return Err(e)
             }
         }
-        Err(ParseError("Expected expression.".to_string()))
+        Err(ParseError{ token: self.peek(), error: "Expected expression.".to_string()})
     }
 
     fn consume(&self, token_type: TokenType, err: &str) -> Result<Token, ParseError> {
@@ -173,8 +175,8 @@ impl Parser {
     }
     
     fn error(&self, token: Token, message: &str) -> ParseError {
-        self.lox.lock().unwrap().token_error(token, message);
-        ParseError(message.into())
+        // self.lox.lock().unwrap().token_error(token.clone(), message);
+        ParseError{token, error: message.into()}
     }
 
     fn synchronize(&self) {
@@ -200,4 +202,8 @@ impl Parser {
     }
 }
 
-#[derive(Debug)] pub struct ParseError(String);
+#[derive(Debug)] 
+pub struct ParseError {
+    pub token: Token,
+    pub error: String,
+}

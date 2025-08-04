@@ -27,7 +27,6 @@ impl Clone for Lox {
     }
 }
 
-
 impl Lox {
 
     pub fn new() -> Self {
@@ -75,13 +74,15 @@ impl Lox {
         let scanner: Scanner = Scanner::new(source, self);
         let tokens: Vec<Token> = scanner.scan_tokens();
 
-        let parser: Parser = Parser::new(Arc::new(Mutex::new(self.clone())), tokens); 
-        let expression = match parser.parse() {
-            Ok(v) => v,
-            Err(e) => panic!("{:?}",e)
-        };
+        let parser: Parser = Parser::new(
+            // Arc::new(Mutex::new(self.clone())), 
+            tokens
+        ); 
         let pp: PrettyPrinter = PrettyPrinter::new();
-        println!("{}", pp.print(expression));
+        match parser.parse() {
+            Ok(v) => {println!("{}", pp.print(v));},
+            Err(e) => {self.token_error(e.token, &e.error);}, 
+        }
     }
 
     fn error(&self, line: u32, message: &str) {
@@ -102,7 +103,6 @@ impl Lox {
     }
 
 }
-
 
 pub struct Scanner {
     lox:        Lox,
