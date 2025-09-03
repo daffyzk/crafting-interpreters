@@ -346,7 +346,7 @@ impl Scanner {
             let double: f64 = lit.parse::<f64>().unwrap();
             self.add_token(TokenType::Number, Some(Value::Float(double)));
         } else {
-            let integer: u32 = lit.parse::<u32>().unwrap(); 
+            let integer: i64 = lit.parse::<i64>().unwrap(); 
             self.add_token(TokenType::Number, Some(Value::Integer(integer)));
         }
     }

@@ -1,9 +1,8 @@
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, Mutex};
 
-use crate::{ast::{Binary, Expr, Grouping, Literal, Unary, Value}, lox::{Lox, Token, TokenType}};
+use crate::{ast::{Binary, Expr, Grouping, Literal, Unary, Value}, lox::{Token, TokenType}};
 
 pub struct Parser {
-    // lox:         Arc<Mutex<Lox>>,
     pub tokens:  Vec<Token>,
     pub current: Arc<AtomicUsize>,
 }
@@ -11,10 +10,8 @@ pub struct Parser {
 impl Parser {
 
     pub fn new(
-        // lox: Arc<Mutex<Lox>>, 
         tokens: Vec<Token>) -> Self {
         Parser {
-            // lox,
             tokens,
             current: Arc::new(AtomicUsize::new(0usize))
         } 

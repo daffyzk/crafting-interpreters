@@ -4,7 +4,7 @@ use crate::lox::Token;
 pub enum Value {
     String(String),
     Float(f64),
-    Integer(u32),
+    Integer(i64),
     Boolean(bool),
     Null,
 }
