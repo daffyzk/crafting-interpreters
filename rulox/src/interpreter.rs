@@ -1,9 +1,10 @@
-use crate::{ast::{Binary, Expr, Grouping, Literal, Unary, Value, Visitor}, lox::TokenType, runtime_error::RuntimeError};
+use crate::{ast::{Binary, Expr, Grouping, Literal, Unary, Value, Visitor}, lox::{Token, TokenType}, runtime_error::RuntimeError};
 
-struct Interpreter {}
+#[derive(Clone)]
+pub struct Interpreter {}
 
 impl Interpreter {
-    fn evaluate(&self, expr: Expr) -> Expr {
+    fn evaluate(&self, expr: Expr) -> Result<Expr, RuntimeError> {
         match expr.clone() {
             Expr::Binary(_) => expr.accept(self),
             Expr::Grouping(_) => expr.accept(self),
@@ -41,8 +42,8 @@ impl Interpreter {
         return (lv, rv)
     }
 
-    fn check_number_operands(token: TokenType, left: Expr, right: Expr) -> Expr {
-        let value_type: &str = match token {
+    fn check_number_operands(token: Token, left: Expr, right: Expr) -> Result<Expr, RuntimeError> {
+        let value_type: &str = match token.type_of {
             TokenType::Greater | 
             TokenType::GreaterEqual | 
             TokenType::Less |
@@ -56,197 +57,207 @@ impl Interpreter {
         };
         return match Interpreter::match_binaries(left, right) {
             (Value::Integer(v), Value::Integer(w)) => { 
-                match token {
-                    TokenType::Greater => { Literal::new(Value::Boolean(v>w)) },
-                    TokenType::GreaterEqual => { Literal::new(Value::Boolean(v>=w)) },
-                    TokenType::Less => { Literal::new(Value::Boolean(v<w)) },
-                    TokenType::LessEqual => { Literal::new(Value::Boolean(v<=w)) },
-                    TokenType::Slash => { Literal::new(Value::Integer(v/w)) },
-                    TokenType::Star => { Literal::new(Value::Integer(v*w)) },
-                    TokenType::Minus => { Literal::new(Value::Integer(v-w)) },
-                    TokenType::Plus => { Literal::new(Value::Integer(v+w)) },
-                    _ => {panic!("binary error: unexpected token type: {}", value_type)},
+                match token.type_of {
+                    TokenType::Greater => { Ok(Literal::new(Value::Boolean(v>w))) },
+                    TokenType::GreaterEqual => { Ok(Literal::new(Value::Boolean(v>=w))) },
+                    TokenType::Less => { Ok(Literal::new(Value::Boolean(v<w))) },
+                    TokenType::LessEqual => { Ok(Literal::new(Value::Boolean(v<=w))) },
+                    TokenType::Slash => { Ok(Literal::new(Value::Integer(v/w))) },
+                    TokenType::Star => { Ok(Literal::new(Value::Integer(v*w))) },
+                    TokenType::Minus => { Ok(Literal::new(Value::Integer(v-w))) },
+                    TokenType::Plus => { Ok(Literal::new(Value::Integer(v+w))) },
+                    _ => {Err(RuntimeError::new(token, format!("binary error: unexpected token type: {}", value_type)))},
                 }
 
             },
             (Value::Float(v), Value::Float(w)) => { 
-                match token {
-                    TokenType::Greater => { Literal::new(Value::Boolean(v>w)) },
-                    TokenType::GreaterEqual => { Literal::new(Value::Boolean(v>=w)) },
-                    TokenType::Less => { Literal::new(Value::Boolean(v<w)) },
-                    TokenType::LessEqual => { Literal::new(Value::Boolean(v<=w)) },
-                    TokenType::Slash => { Literal::new(Value::Float(v/w)) },
-                    TokenType::Star => { Literal::new(Value::Float(v*w)) },
-                    TokenType::Minus => { Literal::new(Value::Float(v-w)) },
-                    TokenType::Plus => { Literal::new(Value::Float(v+w)) },
-                    _ => {panic!("binary error: unexpected token type: {}", value_type)},
+                match token.type_of {
+                    TokenType::Greater => { Ok(Literal::new(Value::Boolean(v>w))) },
+                    TokenType::GreaterEqual => { Ok(Literal::new(Value::Boolean(v>=w))) },
+                    TokenType::Less => { Ok(Literal::new(Value::Boolean(v<w))) },
+                    TokenType::LessEqual => { Ok(Literal::new(Value::Boolean(v<=w))) },
+                    TokenType::Slash => { Ok(Literal::new(Value::Float(v/w))) },
+                    TokenType::Star => { Ok(Literal::new(Value::Float(v*w))) },
+                    TokenType::Minus => { Ok(Literal::new(Value::Float(v-w))) },
+                    TokenType::Plus => { Ok(Literal::new(Value::Float(v+w))) },
+                    _ => {Err(RuntimeError::new(token, format!("binary error: unexpected token type: {}", value_type)))},
                 }
             },
            (Value::String(v), Value::Integer(w)) => { 
-                match token {
+                match token.type_of {
                     TokenType::Minus => { 
                         if w > v.len() as i64 {
-                            return Literal::new(Value::String(String::new()));
+                            return Ok(Literal::new(Value::String(String::new())));
                         }
                         let i = v.chars().take(v.chars().count() - w as usize).collect();
-                        Literal::new(Value::String(i))
+                        Ok(Literal::new(Value::String(i)))
                     },
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} string and integer", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} string and integer", value_type)))}
                 }
             },
            (Value::Integer(v), Value::String(w)) => {
-                match token {
+                match token.type_of {
                     TokenType::Minus => { 
-                        Literal::new(Value::Integer(v - w.len() as i64))
+                        Ok(Literal::new(Value::Integer(v - w.len() as i64)))
                     },
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} integer and string", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} integer and string", value_type)))}
                 } 
             },
             (Value::String(v), Value::String(w)) => { 
-                match token {
+                match token.type_of {
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} string and string", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} string and string", value_type)))}
                 }
             },
             (Value::Float(v), Value::String(w)) => {
-                match token {
+                match token.type_of {
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} float and string", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} float and string", value_type)))}
                 }
             },
             (Value::String(w), Value::Float(v)) => {
-                match token {
+                match token.type_of {
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} string and float", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} string and float", value_type)))}
                 }
             },
             (Value::Boolean(v), Value::String(w)) => {
-                match token {
+                match token.type_of {
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} boolean and string", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} boolean and string", value_type)))}
                 }
             },
             (Value::String(v), Value::Boolean(w)) => {
-                match token {
+                match token.type_of {
                     TokenType::Plus => { 
-                        Literal::new(Value::String(format!("{}{}", v, w)))
+                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
-                    _ => {panic!("Cannot {} string and boolean", value_type)}
+                    _ => {Err(RuntimeError::new(token, format!("Cannot {} string and boolean", value_type)))}
                 }
             },
-           (Value::Integer(_)|Value::Float(_), Value::Boolean(_)) => {panic!("Cannot {} boolean and number", value_type)},
-           (Value::Boolean(_), Value::Integer(_)|Value::Float(_)) => {panic!("Cannot {} number and boolean", value_type)},
-           (Value::Integer(_)|Value::Float(_), Value::Null) => {panic!("Cannot {} null and number", value_type)},
-           (Value::Null, Value::Integer(_)|Value::Float(_)) => {panic!("Cannot {} number and null", value_type)},
-           (Value::Integer(_), Value::Float(_)) => {panic!("Cannot {} float and integer", value_type)},
-           (Value::Float(_), Value::Integer(_)) => {panic!("Cannot {} integer and float", value_type)},
-            _ => {panic!("binary error: unexpected values")},
+           (Value::Integer(_)|Value::Float(_), Value::Boolean(_)) => {
+           Err(RuntimeError::new(token, format!("Cannot {} boolean and number", value_type)))
+           },
+           (Value::Boolean(_), Value::Integer(_)|Value::Float(_)) => {
+           Err(RuntimeError::new(token, format!("Cannot {} number and boolean", value_type)))
+           },
+           (Value::Integer(_)|Value::Float(_), Value::Null) => {
+           Err(RuntimeError::new(token, format!("Cannot {} null and number", value_type)))
+           },
+           (Value::Null, Value::Integer(_)|Value::Float(_)) => {
+           Err(RuntimeError::new(token, format!("Cannot {} number and null", value_type)))
+           },
+           (Value::Integer(_), Value::Float(_)) => {
+           Err(RuntimeError::new(token, format!("Cannot {} float and integer", value_type)))
+           },
+           (Value::Float(_), Value::Integer(_)) => {
+           Err(RuntimeError::new(token, format!("Cannot {} integer and float", value_type)))
+           },
+            _ => {Err(RuntimeError::new(token, format!("binary error: unexpected values")))},
         }
     } 
-    fn interpret(&self, expression: Expr) -> 
-        // Result<Expr, RuntimeError> //TODO remove panics and use Results 
-        Expr 
-        { 
+    pub fn interpret(&self, expression: Expr) -> Result<Expr, RuntimeError> { 
+        println!("raw interpret value: {:?}", expression);
         let value = self.evaluate(expression);
         println!("Interpreted: {:?}", value);
         return value;
     }
 }
 
-impl Visitor<Expr> for Interpreter {
-    fn visit_binary(&self, binary: &Binary) -> Expr {
-        let left: Expr = self.evaluate(*binary.left.clone());
-        let right: Expr = self.evaluate(*binary.right.clone());
+impl Visitor<Result<Expr, RuntimeError>> for Interpreter {
+    fn visit_binary(&self, binary: &Binary) -> Result<Expr, RuntimeError> {
+        let left: Result<Expr, RuntimeError> = self.evaluate(*binary.left.clone());
+        let right: Result<Expr, RuntimeError> = self.evaluate(*binary.right.clone());
         match binary.operator.type_of {
             TokenType::Greater => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);            
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);            
             },
             TokenType::GreaterEqual => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);            
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);            
             },
             TokenType::Less => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);            
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);            
             },
             TokenType::LessEqual => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);            
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);            
             },
             TokenType::BangEqual => {
-                return Literal::new(Value::Boolean(!Interpreter::is_equal(Interpreter::match_binaries(left, right))));
+                return Ok(Literal::new(Value::Boolean(!Interpreter::is_equal(Interpreter::match_binaries(left?, right?)))));
             },
             TokenType::EqualEqual => {
-                return Literal::new(Value::Boolean(Interpreter::is_equal(Interpreter::match_binaries(left, right)))); 
+                return Ok(Literal::new(Value::Boolean(Interpreter::is_equal(Interpreter::match_binaries(left?, right?))))); 
             },
             TokenType::Minus => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);
             },
             TokenType::Slash => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);
             },
             TokenType::Star => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);
             },
             TokenType::Plus => {
-                return Interpreter::check_number_operands(binary.operator.type_of.clone(),left, right);
+                return Interpreter::check_number_operands(binary.operator.clone(),left?, right?);
             },
             _ => {return right}
         }
     }
-    fn visit_grouping(&self, grouping: &Grouping) -> Expr {
+    fn visit_grouping(&self, grouping: &Grouping) -> Result<Expr, RuntimeError> {
         self.evaluate(*grouping.expression.clone())
     }
-    fn visit_literal(&self, literal: &Literal) -> Expr {
-        Expr::Literal(literal.clone()) // TODO this in theory should return the value but whatever
+    fn visit_literal(&self, literal: &Literal) -> Result<Expr, RuntimeError> {
+        Ok(Expr::Literal(literal.clone())) // TODO this in theory should return the value but whatever
     }
-    fn visit_unary(&self, unary: &Unary) -> Expr { 
-        let right: Expr = self.evaluate(*unary.right.clone());
+    fn visit_unary(&self, unary: &Unary) -> Result<Expr, RuntimeError> { 
+        let right: Result<Expr, RuntimeError> = self.evaluate(*unary.right.clone());
         match unary.operator.type_of {
             TokenType::Bang => {
-                match right {
+                match right? {
                     Expr::Literal(r) => {
                         match r.value {
                             Value::Null => { 
-                                return Literal::new(Value::Boolean(!Interpreter::is_truthy(Value::Null)))
+                                return Ok(Literal::new(Value::Boolean(!Interpreter::is_truthy(Value::Null))))
                             },
                             _ => {
-                                return Literal::new(Value::Boolean(!Interpreter::is_truthy(r.value)))
+                                return Ok(Literal::new(Value::Boolean(!Interpreter::is_truthy(r.value))))
                             }
                         }
                     },
-                    _ => { panic!("bang-right panic") },
+                    _ => { Err(RuntimeError::new(unary.operator.clone(), String::from("bang-right panic"))) },
                 } 
 
             },
             TokenType::Minus => {
-                match right {
+                match right? {
                     Expr::Literal(r) => {
                         match r.value {
                             Value::Integer(i) => { 
-                                return Literal::new(Value::Integer(-i))
+                                return Ok(Literal::new(Value::Integer(-i)))
                             },
                             Value::Float(f) => {
-                                return Literal::new(Value::Float(-f))
+                                return Ok(Literal::new(Value::Float(-f)))
                             },
-                            _ => {panic!("value is string or boolean panic")}
+                            _ => { Err(RuntimeError::new(unary.operator.clone(), String::from("value is string or boolean panic"))) }
                         }
                     },
-                    _ => { panic!("minus-right panic") },
+                    _ => { Err(RuntimeError::new(unary.operator.clone(), String::from("minus-right panic"))) },
                 } 
             },
-            _ => {panic!("unary panic")}
+            _ => { Err(RuntimeError::new(unary.operator.clone(), String::from("unary panic"))) }
         }
     }
 }
