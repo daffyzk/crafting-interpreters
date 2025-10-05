@@ -56,7 +56,7 @@ impl Parser {
     fn check(&self, token_type: TokenType) -> bool {
         if self.is_at_end() {return false};
         let p = self.peek();
-        matches!(p.type_of, token_type)
+        p.type_of == token_type
     }
     
     fn advance(&self) -> Token {
@@ -144,9 +144,9 @@ impl Parser {
     }
 
     fn primary(&self) -> Result<Expr, ParseError> {
-        if self.match_types(vec![TokenType::False]) {return Ok(Literal::new(Value::Boolean(false)))};
-        if self.match_types(vec![TokenType::True])  {return Ok(Literal::new(Value::Boolean(true)))};
-        if self.match_types(vec![TokenType::Nil]) {return Ok(Literal::new(Value::Null))};
+        if self.match_types(vec![TokenType::False]) { return Ok(Literal::new(Value::Boolean(false))) };
+        if self.match_types(vec![TokenType::True])  { return Ok(Literal::new(Value::Boolean(true))) };
+        if self.match_types(vec![TokenType::Nil]) { return Ok(Literal::new(Value::Null)) };
         if self.match_types(vec![TokenType::Number, TokenType::String]) {
             return Ok(Literal::new(self.previous().literal))
         }
@@ -172,7 +172,6 @@ impl Parser {
     }
     
     fn error(&self, token: Token, message: &str) -> ParseError {
-        // self.lox.lock().unwrap().token_error(token.clone(), message);
         ParseError{token, error: message.into()}
     }
 

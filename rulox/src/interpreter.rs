@@ -86,7 +86,7 @@ impl Interpreter {
            (Value::String(v), Value::Integer(w)) => { 
                 match token.type_of {
                     TokenType::Minus => { 
-                        if w > v.len() as i64 {
+                        if w > v.len() as i64 { // if string is too small, remove all chars
                             return Ok(Literal::new(Value::String(String::new())));
                         }
                         let i = v.chars().take(v.chars().count() - w as usize).collect();
@@ -109,10 +109,10 @@ impl Interpreter {
                     _ => {Err(RuntimeError::new(token, format!("Cannot {} integer and string", value_type)))}
                 } 
             },
-            (Value::String(v), Value::String(w)) => { 
+           (Value::String(v), Value::String(w)) => { 
                 match token.type_of {
                     TokenType::Plus => { 
-                        Ok(Literal::new(Value::String(format!("{}{}", v, w))))
+                       Ok(Literal::new(Value::String(format!("{}{}", v, w))))
                     },
                     _ => {Err(RuntimeError::new(token, format!("Cannot {} string and string", value_type)))}
                 }
