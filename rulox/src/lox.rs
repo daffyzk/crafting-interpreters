@@ -11,18 +11,24 @@ use std::sync::Mutex;
 use std::sync::RwLock;
 
 use crate::ast::Value;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::pp::PrettyPrinter;
+use crate::runtime_error::RuntimeError;
 
 pub struct Lox {
+    pub interpreter: Interpreter,
     had_error: AtomicBool,
+    had_runtime_error: AtomicBool,
 }
 
 impl Clone for Lox {
     // TODO: idk about this one but it's just to make it run for now
     fn clone (&self) -> Self {
         Lox {
-            had_error: AtomicBool::new(self.had_error.load(Ordering::Relaxed))
+            interpreter: self.interpreter.clone(),
+            had_error: AtomicBool::new(self.had_error.load(Ordering::Relaxed)),
+            had_runtime_error: AtomicBool::new(self.had_error.load(Ordering::Relaxed))
         }
     }
 }
@@ -31,7 +37,9 @@ impl Lox {
 
     pub fn new() -> Self {
         Self {
-            had_error: AtomicBool::new(false)
+            interpreter: Interpreter{},
+            had_error: AtomicBool::new(false),
+            had_runtime_error: AtomicBool::new(false),
         }
     }
     
@@ -54,6 +62,9 @@ impl Lox {
 
         if self.had_error.load(Ordering::SeqCst) {
             process::exit(65)
+        };
+        if self.had_runtime_error.load(Ordering::SeqCst) {
+            process::exit(70)
         };
     }
 
@@ -78,15 +89,24 @@ impl Lox {
             // Arc::new(Mutex::new(self.clone())), 
             tokens
         ); 
-        let pp: PrettyPrinter = PrettyPrinter::new();
         match parser.parse() {
-            Ok(v) => {println!("{}", pp.print(v));},
+            Ok(v) => {
+                match self.interpreter.interpret(v) {
+                    Ok(_) => {},
+                    Err(e) => self.runtime_error(e)
+                }
+            },
             Err(e) => {self.token_error(e.token, &e.error);}, 
         }
     }
 
     fn error(&self, line: u32, message: &str) {
         self.report(line, "", message);
+    }
+
+    fn runtime_error(&self, error: RuntimeError) {
+        println!("{}\n[line {}]", error.message, error.token.line);
+        self.had_runtime_error.store(true, Ordering::SeqCst)
     }
 
     fn report(&self, line: u32, location: &str, message: &str) {
@@ -346,7 +366,7 @@ impl Scanner {
             let double: f64 = lit.parse::<f64>().unwrap();
             self.add_token(TokenType::Number, Some(Value::Float(double)));
         } else {
-            let integer: u32 = lit.parse::<u32>().unwrap(); 
+            let integer: i64 = lit.parse::<i64>().unwrap(); 
             self.add_token(TokenType::Number, Some(Value::Integer(integer)));
         }
     }
@@ -399,7 +419,7 @@ impl Scanner {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
 
 LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
